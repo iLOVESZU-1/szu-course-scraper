@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Course Scraper",
+  "version": "0.7.5",
+  "description": "爬取网页课程，导出 AI 友好表格，并自动生成无冲突排课方案。",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "Course Scraper",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Course Scraper</title>
+    <link rel="stylesheet" href="popup.css" />
+    <script src="scheduler.js" defer></script>
+    <script src="popup.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>选课助手</h1>
+        <p id="hostLabel">当前网页</p>
+      </div>
+      <label class="switch" title="打开后，此网站页面加载完成会自动爬取一次">
+        <input id="autoToggle" type="checkbox" />
+        <span class="track"><span class="thumb"></span></span>
+        <span class="switch-text">自动</span>
+      </label>
+    </header>
+
+    <main>
+      <section class="actions" aria-label="爬取操作">
+        <button id="scanCourseGroups" type="button">读取本页大类</button>
+        <button id="scanAllPages" class="accent-action" type="button">读取全部页面</button>
+        <button id="expandAndScrape" type="button" disabled>爬取本页已选</button>
+        <button id="expandAllPages" class="primary" type="button" disabled>爬取全部已选</button>
+      </section>
+
+      <details class="crawl-options">
+        <summary>翻页与筛选</summary>
+        <div class="crawl-options-grid">
+          <label>最多页数 <input id="crawlPageLimit" type="number" min="1" max="50" value="50" /></label>
+          <label>翻页间隔（秒） <input id="crawlDelaySeconds" type="number" min="0.5" max="15" step="0.5" value="0.5" /></label>
+          <label class="regex-option">课程正则 <input id="crawlCourseRegex" type="text" placeholder="数学|英语" /></label>
+        </div>
+      </details>
+
+      <section id="groupPicker" class="group-picker" aria-label="选择课程大类" hidden>
+        <div class="section-head">
+          <h2><span id="groupCount">0</span> 个课程大类</h2>
+          <div class="inline-actions">
+            <button id="selectAllGroups" class="text-button" type="button">全选</button>
+            <button id="clearAllGroups" class="text-button" type="button">取消全选</button>
+            <button id="clearGroupCache" class="text-button danger-text" type="button">清空列表</button>
+          </div>
+        </div>
+        <div id="groupList" class="group-list"></div>
+        <div id="selectedGroupCount" class="plan-meta">已勾选 0 个大类</div>
+      </section>
+
+      <section id="status" class="status" role="status">等待爬取课程数据</section>
+
+      <section class="result-toolbar">
+        <div class="result-head">
+          <div>
+            <strong id="countLabel">0</strong>
+            <span>门课程</span>
+            <span class="credit-summary"> · <strong id="creditLabel">0</strong> 学分</span>
+          </div>
+          <span id="timeLabel">尚无结果</span>
+        </div>
+        <button id="clearAllCache" class="clear-cache-button" type="button">清空缓存</button>
+      </section>
+
+      <section class="course-filters" aria-label="排除课程类别">
+        <div class="section-head">
+          <h2>排除课程</h2>
+          <button id="resetCourseEdits" class="text-button" type="button" disabled>全部恢复</button>
+        </div>
+        <div class="filter-grid">
+          <label><input id="filterPublicElective" type="checkbox" />去除公共选修课</label>
+          <label><input id="filterPublicRequired" type="checkbox" />去除公共必修课</label>
+          <label><input id="filterProfessionalElective" type="checkbox" />去除专业选修课</label>
+          <label><input id="filterProfessionalRequired" type="checkbox" />去除专业必修课</label>
+          <label><input id="filterSports" type="checkbox" />去除体育类</label>
+          <label><input id="filterMooc" type="checkbox" />去除 MOOC 类</label>
+        </div>
+      </section>
+
+      <section class="planner" aria-label="智能排课">
+        <div class="section-head">
+          <h2>智能排课</h2>
+          <button id="showCandidates" class="text-button" type="button" disabled>查看全部</button>
+        </div>
+        <div class="planner-controls">
+          <label class="mode-picker">排课模式
+            <select id="planningMode" aria-label="排课模式">
+              <option value="simple">简单排课</option>
+              <option value="advanced">高级自定义排课</option>
+            </select>
+          </label>
+          <select id="strategySelect" aria-label="排课策略">
+            <option value="compact">最少上课天数</option>
+            <option value="no-early">尽量避开1-2节</option>
+            <option value="max-courses">最多课程数</option>
+          </select>
+          <button id="generatePlans" class="primary" type="button" disabled>生成方案</button>
+        </div>
+        <select id="planSelect" aria-label="选择排课方案" disabled>
+          <option value="">尚未生成方案</option>
+        </select>
+        <div id="planMeta" class="plan-meta">等待课程数据</div>
+        <details id="advancedOptions" class="advanced-options" hidden>
+          <summary>高级自定义</summary>
+          <div class="advanced-grid">
+            <label>最多上课天数
+              <select id="maxDaysSelect">
+                <option value="0">不限</option>
+                <option value="1">最多1天</option>
+                <option value="2">最多2天</option>
+                <option value="3">最多3天</option>
+                <option value="4">最多4天</option>
+                <option value="5">最多5天</option>
+                <option value="6">最多6天</option>
+                <option value="7">最多7天</option>
+              </select>
+            </label>
+            <label>是否有早八
+              <select id="earlyPolicySelect">
+                <option value="allow">不限</option>
+                <option value="forbid">不安排早八</option>
+                <option value="require">必须有早八</option>
+              </select>
+            </label>
+            <label>是否晚上上课
+              <select id="eveningPolicySelect">
+                <option value="allow">不限</option>
+                <option value="forbid">不安排晚课</option>
+                <option value="require">必须有晚课</option>
+              </select>
+            </label>
+            <label class="advanced-check"><input id="acceptEveningToggle" type="checkbox" checked />接受第11-14节</label>
+          </div>
+        </details>
+        <button id="showCalendar" class="calendar-button" type="button" disabled>网页预览排课方案</button>
+      </section>
+
+      <section class="export-mode" aria-label="导出信息范围">
+        <span>导出内容</span>
+        <div class="segmented">
+          <label>
+            <input type="radio" name="exportMode" value="detailed" checked />
+            <span>详细信息</span>
+          </label>
+          <label>
+            <input type="radio" name="exportMode" value="minimal" />
+            <span>课程名 + 时间</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="exports" aria-label="导出">
+        <button id="copyCsv" type="button" disabled>复制 CSV</button>
+        <button id="copyJson" type="button" disabled>复制 JSON</button>
+        <button id="downloadCsv" type="button" disabled>下载 CSV</button>
+        <button id="downloadJson" type="button" disabled>下载 JSON</button>
+        <button id="downloadAllPlans" class="wide" type="button" disabled>下载全部方案 JSON</button>
+      </section>
+
+      <section class="table-wrap" aria-label="课程结果">
+        <table>
+          <thead>
+            <tr>
+              <th>课程名称</th>
+              <th>节数</th>
+              <th>学分</th>
+              <th>老师</th>
+              <th>周数</th>
+              <th>时间</th>
+              <th aria-label="操作"></th>
+            </tr>
+          </thead>
+          <tbody id="courseRows">
+            <tr>
+              <td colspan="7" class="empty">暂无课程数据</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

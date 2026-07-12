@@ -1,0 +1,11 @@
+# Browser and operating-system files
+.DS_Store
+Thumbs.db
+
+# Local development files
+*.log
+*.zip
+node_modules/
+
+# Local rollback copies
+../course-scraper-extension-backup-*/
